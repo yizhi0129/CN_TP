@@ -1,0 +1,26 @@
+--------- Test environment of execution for Practical exercises of Numerical Algorithmics ---------
+
+The exponantial value is e = 2.718282 
+The maximum single precision value from values.h is maxfloat = 3.402823e+38 
+The maximum single precision value from float.h is flt_max = 3.402823e+38 
+The maximum double precision value from float.h is dbl_max = 1.797693e+308 
+The epsilon in single precision value from float.h is flt_epsilon = 1.192093e-07 
+The epsilon in double precision value from float.h is dbl_epsilon = 2.220446e-16 
+
+
+ Test of ATLAS (BLAS/LAPACK) environment 
+x[0] = 1.000000, y[0] = 6.000000
+x[1] = 2.000000, y[1] = 7.000000
+x[2] = 3.000000, y[2] = 8.000000
+x[3] = 4.000000, y[3] = 9.000000
+x[4] = 5.000000, y[4] = 10.000000
+
+Test DCOPY y <- x 
+y[0] = 1.000000
+y[1] = 2.000000
+y[2] = 3.000000
+y[3] = 4.000000
+y[4] = 5.000000
+
+
+--------- End -----------

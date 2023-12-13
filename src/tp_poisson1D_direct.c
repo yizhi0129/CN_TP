@@ -3,8 +3,8 @@
 /* This file contains the main function   */
 /* to solve the Poisson 1D problem        */
 /******************************************/
-#include "lib_poisson1D.h"
-#include "atlas_headers.h"
+#include "../include/lib_poisson1D.h"
+#include "../include/atlas_headers.h"
 
 int main(int argc,char *argv[])
 /* ** argc: Nombre d'arguments */
@@ -37,12 +37,17 @@ int main(int argc,char *argv[])
 
   // TODO : you have to implement those functions
   set_grid_points_1D(X, &la);
+
   set_dense_RHS_DBC_1D(RHS,&la,&T0,&T1);
+
   set_analytical_solution_DBC_1D(EX_SOL, X, &la, &T0, &T1);
   
   write_vec(RHS, &la, "RHS.dat");
+  
   write_vec(EX_SOL, &la, "EX_SOL.dat");
+
   write_vec(X, &la, "X_grid.dat");
+  
 
   kv=1;
   ku=1;
@@ -53,7 +58,7 @@ int main(int argc,char *argv[])
 
   set_GB_operator_colMajor_poisson1D(AB, &lab, &la, &kv);
 
-  // write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "AB.dat");
+  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "AB.dat");
 
   printf("Solution with LAPACK\n");
   /* LU Factorization */
@@ -62,9 +67,9 @@ int main(int argc,char *argv[])
   dgbtrf_(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
 
   /* LU for tridiagonal matrix  (can replace dgbtrf_) */
-  // ierr = dgbtrftridiag(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
+  ierr = dgbtrftridiag(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
 
-  // write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "LU.dat");
+  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "LU.dat");
   
   /* Solution (Triangular) */
   if (info==0){
