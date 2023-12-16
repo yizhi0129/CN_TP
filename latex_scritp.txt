@@ -1,0 +1,85 @@
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[french]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{Calcul Numérique TP}
+\author{YANG Yizhi}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\section{Introduction : Problème Poisson 1D}
+
+On s'intéresse au problème de Poisson à dimension 1. Dans la suite de ce TP, on va d'abord introduire ce problème et puis proposer des méthodes afin d'approximer la solution exacte.
+
+......
+
+\section{Test d'environnement}
+
+\section{Méthode directe}
+\subsection{Stockage Bande}
+
+\subsubsection{Déclaration et allocation en C}
+
+En effet, on doit déclarer et allouer les matrices de manière à ce qu'elles soient compatibles avec les fonctions BLAS/LAPACK. 
+.....
+
+\subsubsection{la Constante \texttt{LAPACK\_COL\_MAJOR}}
+
+Cette constante signifie que la matrice donnée est stockée colonne par colonne.
+
+\subsubsection{la Dimension Principale}
+
+ La dimension principale dans le stockage en bande est la dimension qui représente le nombre total de colonnes de la matrice, même si seule une bande (une partie de la matrice) est stockée.
+
+\subsection{Explication des Fonctions BLAS/LAPACK}
+\subsubsection{dgbmv}
+
+C'est une fonction BLAS qui effectue une multiplication d'une matrice (stockée en bande) par un vecteur. La lettre "d" signifie que les éléments contenus dans les matrices sont de type double. 
+
+
+\subsubsection{dgbtrf}
+
+C'est une routine LAPACK qui effectue la factorisation LU d'une matrice générale stockée en bande, donc les éléments sont de type double.
+
+\subsubsection{dgbtrs}
+
+C'est une routine LAPACK qui résout un système d'équations linéaires pour une matrice stockée en bande après une factorisation LU. Ses éléments sont de type double.
+
+\subsubsection{dgbsv}
+
+C'est similaire de dgbtrs mais avec pivotage partiel.
+
+\subsubsection{Calcul de la norme du résidu relatif}
+
+La norme du résidu relatif s'écrit sous la forme : 
+
+\[\|r\|_2 = \frac{\|Ax - b\|_2}{\|b\|_2}\]
+
+On applique d'abord la fonction cblas\_dgbmv pour calculer le produit matrice-vecteur $Ax$, puis on effectue l'addition de deux vecteurs $Ax$ et $b$ par la fonction cblas\_daxpy.
+
+On pourra utiliser la fonction cblas\_dnrm2 pour calculer la norme euclidienne.
+
+\section{Méthodes itératives}
+
+
+\section{Conclusion}
+
+
+
+
+
+\end{document}

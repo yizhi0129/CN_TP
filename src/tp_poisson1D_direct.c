@@ -71,13 +71,14 @@ int main(int argc,char *argv[])
 
   write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "LU.dat");
   
-  /* Solution (Triangular) */
+  /* Solution (Triangular) 
   if (info==0){
     dgbtrs_("N", &la, &kl, &ku, &NRHS, AB, &lab, ipiv, RHS, &la, &info);
     if (info!=0){printf("\n INFO DGBTRS = %d\n",info);}
   }else{
     printf("\n INFO = %d\n",info);
   }
+  */
 
   /* It can also be solved with dgbsv */
   // TODO : use dgbsv
