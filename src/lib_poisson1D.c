@@ -5,54 +5,58 @@
 /**********************************************/
 #include "../include/lib_poisson1D.h"
 
-void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv)
+void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv) 
 {
-  int ii, jj;
-  for (ii = 0; ii < (* la); ii ++)
-  {
-    for (jj = 0; jj < (* lab); jj ++)
-    {
-      AB[ii * (* lab) + jj] = 0.0;
-    }
-  }
-  for (ii = 0; ii < (* la); ii ++)
-  {
-    AB[ii * (* lab) + ii] = 2.0;
-  }
-  for (ii = 0; ii < (* la) - 1; ii ++)
-  {
-    AB[ii * (* lab) + ii + 1] = -1.0;
-  }
-  for (ii = 1; ii < (* la); ii ++)
-  {
-    AB[ii * (* lab) + ii - 1] = -1.0;
-  }
-  AB[0] = 1.0;
-  AB[(* la) * (* lab) - 1] = 1.0;
-  AB[(* la) * (* lab) - 2] = -1.0;
-  AB[(* la) * (* lab) -(* la)] = -1.0;
-};
+    int i, j;
+    int ku = *kv;  // Nombre de diagonales au-dessus de la diagonale principale
+    int kl = *kv;  // Nombre de diagonales en dessous de la diagonale principale
 
-void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *kv)
+    // Initialisation de la matrice à zéro
+    for (j = 0; j < *lab; j++) 
+    {
+        for (i = 0; i < *la; i++) 
+        {
+            AB[i * (*lab) + j] = 0.0;
+        }
+    }
+
+    // Remplissage de la bande principale
+    for (i = 0; i < *la; i++) 
+    {
+        AB[i * (*lab) + ku + kl] = 2.0;  // Éléments sur la diagonale principale
+    }
+
+    // Remplissage des diagonales au-dessus et en dessous de la diagonale principale
+    for (i = 0; i < *la - 1; i++) 
+    {
+        AB[(i + 1) * (*lab) + ku + kl - 1] = -1.0;  // Diagonale au-dessus
+        AB[i * (*lab) + ku + kl + 1] = -1.0;         // Diagonale en dessous
+    }
+}
+
+
+void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *kv) 
 {
-  int ii, jj;
-  for (ii = 0; ii < (* la); ii ++)
-  {
-    AB[ii * (* lab) + ii] = 1.0;
-  }
-  for (ii = 0; ii < (* la) - 1; ii ++)
-  {
-    AB[ii * (* lab) + ii + 1] = 0.0;
-  }
-  for (ii = 1; ii < (* la); ii ++)
-  {
-    AB[ii * (* lab) + ii - 1] = 0.0;
-  }
-  AB[0] = 0.0;
-  AB[(* la) * (* lab) - 1] = 0.0;
-  AB[(* la) * (* lab) - 2] = 0.0;
-  AB[(* la) * (* lab) -(* la)] = 0.0;
-};
+    int i, j;
+    int ku = *kv;  // Nombre de diagonales au-dessus de la diagonale principale
+    int kl = *kv;  // Nombre de diagonales en dessous de la diagonale principale
+
+    // Initialisation de la matrice à zéro
+    for (j = 0; j < *lab; j++) 
+    {
+        for (i = 0; i < *la; i++) 
+        {
+            AB[i * (*lab) + j] = 0.0;
+        }
+    }
+
+    // Remplissage de la diagonale principale
+    for (i = 0; i < *la; i++) 
+    {
+        AB[i * (*lab) + ku + kl] = 1.0;  // Éléments sur la diagonale principale
+    }
+}
+
 
 void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1)
 {
