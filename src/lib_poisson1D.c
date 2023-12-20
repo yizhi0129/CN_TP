@@ -12,22 +12,22 @@ void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv)
     int kl = *kv;  // Nombre de diagonales en dessous de la diagonale principale
 
     // Initialisation de la matrice à zéro
-    for (j = 0; j < *lab; j++) 
+    for (j = 0; j < *lab; j ++) 
     {
-        for (i = 0; i < *la; i++) 
+        for (i = 0; i < *la; i ++) 
         {
             AB[i * (*lab) + j] = 0.0;
         }
     }
 
     // Remplissage de la bande principale
-    for (i = 0; i < *la; i++) 
+    for (i = 0; i < *la; i ++) 
     {
         AB[i * (*lab) + ku + kl] = 2.0;  // Éléments sur la diagonale principale
     }
 
     // Remplissage des diagonales au-dessus et en dessous de la diagonale principale
-    for (i = 0; i < *la - 1; i++) 
+    for (i = 0; i < *la - 1; i ++) 
     {
         AB[(i + 1) * (*lab) + ku + kl - 1] = -1.0;  // Diagonale au-dessus
         AB[i * (*lab) + ku + kl + 1] = -1.0;         // Diagonale en dessous
@@ -42,16 +42,16 @@ void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *k
     int kl = *kv;  // Nombre de diagonales en dessous de la diagonale principale
 
     // Initialisation de la matrice à zéro
-    for (j = 0; j < *lab; j++) 
+    for (j = 0; j < *lab; j ++) 
     {
-        for (i = 0; i < *la; i++) 
+        for (i = 0; i < *la; i ++) 
         {
             AB[i * (*lab) + j] = 0.0;
         }
     }
 
     // Remplissage de la diagonale principale
-    for (i = 0; i < *la; i++) 
+    for (i = 0; i < *la; i ++) 
     {
         AB[i * (*lab) + ku + kl] = 1.0;  // Éléments sur la diagonale principale
     }
@@ -60,33 +60,47 @@ void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *k
 
 void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1)
 {
-  int ii;
-  for (ii = 0; ii < (* la); ii ++)
-  {
-    RHS[ii] = 0.0;
-  }
-  RHS[0] = (* BC0);
-  RHS[(* la) - 1] = (* BC1);
+    int i;
+    double T0 = *BC0;
+    double T1 = *BC1;
+    for (i = 0; i < *la; i++) 
+    {
+        RHS[i] = 0.0;
+    }
+    RHS[0] = T0;
+    RHS[*la - 1] = T1;
 };
 
 
-void set_analytical_solution_DBC_1D(double* EX_SOL, double* X, int* la, double* BC0, double* BC1)
+void set_analytical_solution_DBC_1D(double* EX_SOL, double* X, int* la, double* BC0, double* BC1) 
 {
-  int ii;
-  for (ii = 0; ii < (* la); ii ++)
-  {
-    EX_SOL[ii] = (* BC0) + (X[ii] - X[0]) * ((* BC1) - (* BC0)) / (X[(* la) - 1] - X[0]);
-  }
-};  
+    int i;
+    double T0 = *BC0;
+    double T1 = *BC1;
+    for (i = 0; i < *la; i++) 
+    {
+        EX_SOL[i] = X[i] * (T1 - T0) + T0;
+    }
+    EX_SOL[0] = T0;
+    EX_SOL[*la - 1] = T1;
+} 
 
-void set_grid_points_1D(double* x, int* la)
+void set_grid_points_1D(double* x, int* la) 
 {
-  int ii;
-  for (ii = 0; ii < (* la); ii ++)
-  {
-    x[ii] = (double) ii / (double) ((* la) - 1);
-  }
-};
+    int i;
+    
+    // Initialisation du vecteur à zéro
+    for (i = 0; i < *la; i ++) 
+    {
+        x[i] = 0.0;
+    }
+
+    // Remplissage du vecteur avec des valeurs équidistantes
+    for (i = 0; i < *la; i++) 
+    {
+        x[i] = (double) i / (double) ((*la) - 1);
+    }
+}
 
 void write_GB_operator_rowMajor_poisson1D(double* AB, int* lab, int* la, char* filename)
 {
