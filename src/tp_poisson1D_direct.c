@@ -35,7 +35,7 @@ int main(int argc,char *argv[])
   EX_SOL=(double *) malloc(sizeof(double)*la);
   X=(double *) malloc(sizeof(double)*la);
 
-  // TODO : you have to implement those functions
+  
   set_grid_points_1D(X, &la);
 
   set_dense_RHS_DBC_1D(RHS,&la,&T0,&T1);
@@ -60,6 +60,15 @@ int main(int argc,char *argv[])
 
   write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "AB.dat");
 
+  /* Solution with BLAS */
+  //void dgbmv_(char* TRANS, int* M, int* N, int* KL, int* KU, double* ALPHA, double* A, int* LDA, double* X, int* INCX, double* BETA, double* Y, int* INCY);
+  dgbmv_("N", &la, &la, &kl, &ku, 1, AB, &lab, EX_SOL, &NRHS, 1, RHS, &NRHS);
+  write_vec(RHS, &la, "RHS_b.dat");
+
+  /* Verify validity */
+
+
+
   printf("Solution with LAPACK\n");
   /* LU Factorization */
   info=0;
@@ -71,23 +80,41 @@ int main(int argc,char *argv[])
 
   write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "LU.dat");
   
-  /* Solution (Triangular) 
-  if (info==0){
+  /* Solution (Triangular) */
+  if (info == 0)
+  {
     dgbtrs_("N", &la, &kl, &ku, &NRHS, AB, &lab, ipiv, RHS, &la, &info);
-    if (info!=0){printf("\n INFO DGBTRS = %d\n",info);}
-  }else{
+    if (info!=0)
+    {
+      printf("\n INFO DGBTRS = %d\n",info);
+    }
+  }
+  else
+  {
     printf("\n INFO = %d\n",info);
   }
-  */
+  
 
   /* It can also be solved with dgbsv */
-  // TODO : use dgbsv
-
+  //void dgbsv_(int* N, int* KL, int* KU, int* NRHS, double* AB, int* LDAB, int* IPIV, double* B, int* LDB, int* INFO);
+  if (info == 0)
+  {
+    dgbsv_(&la, &kl, &ku, &NRHS, AB, &lab, ipiv, RHS, &la, &info);
+    if (info != 0)
+    {
+      printf("\n INFO DGBSV = %d\n",info);
+      }
+  }
+  else
+  {
+    printf("\n INFO = %d\n",info);
+  }
   write_xy(RHS, X, &la, "SOL.dat");
 
   /* Relative forward error */
   // TODO : Compute relative norm of the residual
   
+  relres = dnrm2_(&la, , &NRHS) / dnrm2_(&la, RHS, &NRHS);
   printf("\nThe relative forward error is relres = %e\n",relres);
 
   free(RHS);

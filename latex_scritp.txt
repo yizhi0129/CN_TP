@@ -49,7 +49,7 @@ Cette constante signifie que la matrice donnée est stockée colonne par colonne
 \subsubsection{dgbmv}
 
 C'est une fonction BLAS qui effectue une multiplication d'une matrice (stockée en bande) par un vecteur. La lettre "d" signifie que les éléments contenus dans les matrices sont de type double. 
-
+\[y = αAx + βy]
 
 \subsubsection{dgbtrf}
 

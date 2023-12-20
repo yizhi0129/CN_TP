@@ -61,14 +61,12 @@ void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *k
 void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1)
 {
     int i;
-    double T0 = *BC0;
-    double T1 = *BC1;
-    for (i = 0; i < *la; i++) 
+    for (i = 1; i < *la; i++) 
     {
         RHS[i] = 0.0;
     }
-    RHS[0] = T0;
-    RHS[*la - 1] = T1;
+    RHS[0] = *BC0;
+    RHS[*la - 1] = *BC1;
 };
 
 
@@ -220,9 +218,67 @@ void write_xy(double* vec, double* x, int* la, char* filename)
 
 int indexABCol(int i, int j, int *lab)
 {
-  return 0;
+  return i * (*lab) + j;
 }
-int dgbtrftridiag(int *la, int*n, int *kl, int *ku, double *AB, int *lab, int *ipiv, int *info)
+
+
+// Function to perform LU factorization of a tridiagonal matrix
+// Input:
+//   la: Number of diagonals in the matrix (should be 3 for tridiagonal)
+//   n: Order of the matrix
+//   kl: Number of subdiagonals (should be 1 for tridiagonal)
+//   ku: Number of superdiagonals (should be 1 for tridiagonal)
+//   AB: Input matrix (stored in column-major order)
+//   lab: Leading dimension of the matrix (lab >= n)
+// Output:
+//   AB: LU factorization of the matrix (overwritten on the input matrix)
+//   ipiv: Array of pivot indices
+//   info: Status indicator
+int dgbtrftridiag(int *la, int *n, int *kl, int *ku, double *AB, int *lab, int *ipiv, int *info) 
 {
-  return *info;
+    int i, j, k;
+    double temp;
+
+    // Check for invalid input
+    if (*la != 3 || *kl != 1 || *ku != 1 || *lab < *n) 
+    {
+        *info = -1;
+        return *info;
+    }
+
+    // Initialize info
+    *info = 0;
+
+    // Perform LU factorization
+    for (k = 0; k < *n - 1; k++) 
+    {
+        if (AB[k + (*ku) * (*lab) + k] == 0.0) 
+        {
+            *info = k + 1;  // Matrix is singular
+            return *info;
+        }
+
+        // Compute multiplier
+        temp = -AB[k + (*ku) * (*lab) + k + 1] / AB[k + (*ku) * (*lab) + k];
+
+        // Store multiplier in the subdiagonal
+        AB[k + 1 + (*kl) * (*lab) + k] = -temp;
+
+        // Apply the multiplier to the remaining submatrix
+        for (i = k + 1; i < k + 3 && i < *n; i++) 
+        {
+            for (j = k + 1; j < k + 3 && j < *n; j++) 
+            {
+                AB[i + (*ku) * (*lab) + j] += temp * AB[k + (*ku) * (*lab) + j];
+            }
+        }
+    }
+
+    // Check the last pivot element for singularity
+    if (AB[*n - 1 + (*ku) * (*lab) + *n - 1] == 0.0) 
+    {
+        *info = *n;
+    }
+
+    return *info;
 }
