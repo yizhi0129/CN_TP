@@ -96,7 +96,7 @@ void set_grid_points_1D(double* x, int* la)
     // Remplissage du vecteur avec des valeurs équidistantes
     for (i = 0; i < *la; i++) 
     {
-        x[i] = (double) i / (double) ((*la) - 1);
+        x[i] = (double) (i + 1) / (double) ((*la) + 1);
     }
 }
 
