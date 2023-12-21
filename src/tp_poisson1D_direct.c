@@ -18,7 +18,7 @@ int main(int argc,char *argv[])
   int info;
   int NRHS;
   double T0, T1;
-  double *RHS, *EX_SOL, *X;
+  double *RHS, *EX_SOL, *X, *Y;
   double **AAB;
   double *AB;
 
@@ -62,12 +62,19 @@ int main(int argc,char *argv[])
   //printf("AB\n");
   
   //void cblas_dgbmv(const enum CBLAS_ORDER order, const enum CBLAS_TRANSPOSE TransA, const int M, const int N, const int KL, const int KU, const double alpha, const double *A, const int lda, const double *X, const int incX, const double beta, double *Y, const int incY);
-  cblas_dgbmv(CblasColMajor, CblasNoTrans, la, la, kl, ku, 1.0, AB, lab, EX_SOL, NRHS, 1.0, RHS, NRHS);
-  write_vec(RHS, &la, "RHS_b.dat");
-  //printf("RHS_b\n");
+  
+  cblas_dgbmv(CblasColMajor, CblasNoTrans, la, la, kl, ku, 1.0, AB, lab, EX_SOL, NRHS, 1.0, Y, NRHS);
+  write_vec(Y, &la, "Y.dat");
+  //printf("Y\n");
+
   /* Verify validity */
-
-
+  temp = 0.0;
+  for (int i = 0; i < la; i ++)
+  {
+    Y[i] = pow(Y[i] - RHS[i], 2);
+    temp += Y[i];
+  }
+  temp = sqrt(temp);
 
   printf("Solution with LAPACK\n");
 
@@ -104,7 +111,7 @@ int main(int argc,char *argv[])
   /* Solution (Triangular) */
   if (info == 0)
   {
-    //void LAPACK_dgbtrs( char* trans, lapack_int* n, lapack_int* kl, lapack_int* ku, lapack_int* nrhs, const double* ab, lapack_int* ldab, const lapack_int* ipiv, double* b, lapack_int* ldb, lapack_int *info );
+    //void LAPACK_dgbtrs(char* trans, lapack_int* n, lapack_int* kl, lapack_int* ku, lapack_int* nrhs, const double* ab, lapack_int* ldab, const lapack_int* ipiv, double* b, lapack_int* ldb, lapack_int *info );
     int ldb_dgbtrs = la;
     LAPACK_dgbtrs('N', &la, &kl, &ku, &NRHS, AB, &lab, ipiv, RHS, &ldb_dgbtrs, &info);
     if (info!=0)
@@ -138,8 +145,8 @@ int main(int argc,char *argv[])
   /* Relative forward error */
   // TODO : Compute relative norm of the residual
   
-  //relres = dnrm2_(&la, , &NRHS) / dnrm2_(&la, RHS, &NRHS);
-  //printf("\nThe relative forward error is relres = %e\n",relres);
+  relres = temp / dnrm2_(&la, RHS, &NRHS);
+  printf("\nThe relative forward error is relres = %e\n",relres);
 
   free(RHS);
   free(EX_SOL);

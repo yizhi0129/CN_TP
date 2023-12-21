@@ -1,6 +1,11 @@
 # Use a base image with the necessary dependencies
 FROM ubuntu:latest
 
+# Add the required paths to environment variables
+ENV BLAS_PATH /etc/alternatives/blas.pc-x86_64-linux-gnu
+ENV CBLAS_PATH /etc/alternatives/cblas.h-x86_64-linux-gnu
+ENV LAPACK_PATH /etc/alternatives/lapack.pc-x86_64-linux-gnu
+
 # Install build dependencies
 RUN apt-get update && \
     apt-get install -y build-essential liblapacke-dev
