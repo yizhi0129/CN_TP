@@ -219,7 +219,7 @@ void write_xy(double* vec, double* x, int* la, char* filename)
 
 int indexABCol(int i, int j, int *lab)
 {
-  return i * (*lab) + j;
+  return j * (*lab) + i;
 }
 
 
@@ -239,17 +239,14 @@ int dgbtrftridiag(int *la, int *n, int *kl, int *ku, double *AB, int *lab, int *
 {
     int i, j, k;
     double temp;
-
     // Check for invalid input
     if (*la != 3 || *kl != 1 || *ku != 1 || *lab < *n) 
     {
         *info = -1;
         return *info;
     }
-
     // Initialize info
     *info = 0;
-
     // Perform LU factorization
     for (k = 0; k < *n - 1; k++) 
     {
@@ -258,13 +255,10 @@ int dgbtrftridiag(int *la, int *n, int *kl, int *ku, double *AB, int *lab, int *
             *info = k + 1;  // Matrix is singular
             return *info;
         }
-
         // Compute multiplier
         temp = -AB[k + (*ku) * (*lab) + k + 1] / AB[k + (*ku) * (*lab) + k];
-
         // Store multiplier in the subdiagonal
         AB[k + 1 + (*kl) * (*lab) + k] = -temp;
-
         // Apply the multiplier to the remaining submatrix
         for (i = k + 1; i < k + 3 && i < *n; i++) 
         {
@@ -274,13 +268,11 @@ int dgbtrftridiag(int *la, int *n, int *kl, int *ku, double *AB, int *lab, int *
             }
         }
     }
-
     // Check the last pivot element for singularity
     if (AB[*n - 1 + (*ku) * (*lab) + *n - 1] == 0.0) 
     {
         *info = *n;
     }
-
     return *info;
 }
 

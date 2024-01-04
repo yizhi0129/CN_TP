@@ -5,6 +5,10 @@
 /******************************************/
 #include "../include/lib_poisson1D.h"
 
+#define TRF 0
+#define TRI 1
+#define SV 2
+
 int main(int argc, char *argv[])
 /* ** argc: Nombre d'arguments */
 /* ** argv: Valeur des arguments */
@@ -16,6 +20,9 @@ int main(int argc, char *argv[])
   int *ipiv;
   int info;
   int NRHS;
+
+  int IMPLEM;
+
   double T0, T1;
   double *RHS, *EX_SOL, *X, *Y;
   double **AAB;
@@ -28,6 +35,16 @@ int main(int argc, char *argv[])
   la=nbpoints-2;
   T0=-5.0;
   T1=5.0;
+
+  if (argc == 2) 
+  {
+    IMPLEM = atoi(argv[1]);
+  } 
+  else if (argc > 2) 
+  {
+    perror("Application takes at most one argument");
+    exit(1);
+  }
 
   printf("--------- Poisson 1D ---------\n\n");
   RHS=(double *) malloc(sizeof(double)*la);
@@ -62,8 +79,9 @@ int main(int argc, char *argv[])
   
   //void cblas_dgbmv(const enum CBLAS_ORDER order, const enum CBLAS_TRANSPOSE TransA, const int M, const int N, const int KL, const int KU, const double alpha, const double *A, const int lda, const double *X, const int incX, const double beta, double *Y, const int incY);
   // result here: Y = A * EX_SOL, will be used as RHS for the solver
-  cblas_dgbmv(CblasColMajor, CblasNoTrans, la, la, kl, ku, 1.0, AB, lab, EX_SOL, NRHS, 1.0, Y, NRHS);
-  write_vec(Y, &la, "Y.dat");
+  
+  //cblas_dgbmv(CblasColMajor, CblasNoTrans, la, la, kl, ku, 1.0, AB, lab, EX_SOL, NRHS, 1.0, Y, NRHS);
+  //write_vec(Y, &la, "Y.dat");
   //printf("Y\n");
 
 
@@ -71,7 +89,7 @@ int main(int argc, char *argv[])
 
 
   /* LU Factorization */
-  info=0;
+  
   ipiv = (int *) calloc(la, sizeof(int));
   if (ipiv == NULL)
   {
@@ -79,37 +97,49 @@ int main(int argc, char *argv[])
     exit(1);
   }
   //printf("ipiv\n");
-
-  info = LAPACKE_dgbtrf(LAPACK_COL_MAJOR, la, la, kl, ku, AB, lab, ipiv);
+  if (IMPLEM == TRF)
+  {
+    info = LAPACKE_dgbtrf(LAPACK_COL_MAJOR, la, la, kl, ku, AB, lab, ipiv);
+  }
   
 
-  /* LU for tridiagonal matrix  (can replace dgbtrf_) 
-  ierr = dgbtrftridiag(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
-  */
+  /* LU for tridiagonal matrix  (can replace dgbtrf_) */
+  if (IMPLEM == TRI)
+  {
+    ierr = dgbtrftridiag(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
+  }
 
   write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "LU.dat");
   //printf("LU\n");
 
   /* Solution (Triangular) */
+  if (IMPLEM == TRF || IMPLEM == TRI)
+  {
+    int ldb_dgbtrs = la;
+    info = LAPACKE_dgbtrs(LAPACK_COL_MAJOR, 'N', la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbtrs);
+    // solution is stored in RHS
+  }
   
-  int ldb_dgbtrs = la;
-  info = LAPACKE_dgbtrs(LAPACK_COL_MAJOR, 'N', la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbtrs);
-  // solution is stored in RHS
+  
   
 
   /* It can also be solved with dgbsv */
   // can jump the LU factorization step
-  /*
-  int ldb_dgbsv = la;
-  info = LAPACKE_dgbsv(LAPACK_COL_MAJOR, la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbsv);
-  // solution is stored in RHS
-  */
+  if (IMPLEM == SV)
+  {
+    int ldb_dgbsv = la;
+    info = LAPACKE_dgbsv(LAPACK_COL_MAJOR, la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbsv);
+    // solution is stored in RHS
+  }
+  
+  
+
   write_xy(RHS, X, &la, "SOL.dat"); // col1 x, col2 rhs
 
   /* Relative forward error */
   // Compute relative norm of the residual
   
-  relres = relative_forward_error(RHS, Y, &NRHS);
+  relres = relative_forward_error(RHS, EX_SOL, &NRHS);
   printf("\nThe relative forward error is relres = %e\n",relres);
 
   free(RHS);
