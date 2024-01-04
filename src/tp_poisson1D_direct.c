@@ -4,9 +4,8 @@
 /* to solve the Poisson 1D problem        */
 /******************************************/
 #include "../include/lib_poisson1D.h"
-#include "../include/atlas_headers.h"
 
-int main(int argc,char *argv[])
+int main(int argc, char *argv[])
 /* ** argc: Nombre d'arguments */
 /* ** argv: Valeur des arguments */
 {
@@ -38,8 +37,8 @@ int main(int argc,char *argv[])
   
   set_grid_points_1D(X, &la);
 
-  set_dense_RHS_DBC_1D(RHS,&la,&T0,&T1);
-
+  set_dense_RHS_DBC_1D(RHS, &la, &T0, &T1);
+ 
   set_analytical_solution_DBC_1D(EX_SOL, X, &la, &T0, &T1);
   
   write_vec(RHS, &la, "RHS.dat");
@@ -62,19 +61,11 @@ int main(int argc,char *argv[])
   //printf("AB\n");
   
   //void cblas_dgbmv(const enum CBLAS_ORDER order, const enum CBLAS_TRANSPOSE TransA, const int M, const int N, const int KL, const int KU, const double alpha, const double *A, const int lda, const double *X, const int incX, const double beta, double *Y, const int incY);
-  
+  // result here: Y = A * EX_SOL, will be used as RHS for the solver
   cblas_dgbmv(CblasColMajor, CblasNoTrans, la, la, kl, ku, 1.0, AB, lab, EX_SOL, NRHS, 1.0, Y, NRHS);
   write_vec(Y, &la, "Y.dat");
   //printf("Y\n");
 
-  /* Verify validity */
-  temp = 0.0;
-  for (int i = 0; i < la; i ++)
-  {
-    Y[i] = pow(Y[i] - RHS[i], 2);
-    temp += Y[i];
-  }
-  temp = sqrt(temp);
 
   printf("Solution with LAPACK\n");
 
@@ -88,64 +79,37 @@ int main(int argc,char *argv[])
     exit(1);
   }
   //printf("ipiv\n");
-  if (info == 0)
-  {
-    LAPACK_dgbtrf(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
-    if (info!=0)
-    {
-      printf("\n INFO DGBTRF = %d\n",info);
-    }
-  }
-  else
-  {
-    printf("\n DGBTRF: INFO = %d\n",info);
-  }
+
+  info = LAPACKE_dgbtrf(LAPACK_COL_MAJOR, la, la, kl, ku, AB, lab, ipiv);
   
 
-  /* LU for tridiagonal matrix  (can replace dgbtrf_) */
+  /* LU for tridiagonal matrix  (can replace dgbtrf_) 
   ierr = dgbtrftridiag(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
+  */
 
   write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "LU.dat");
   //printf("LU\n");
 
   /* Solution (Triangular) */
-  if (info == 0)
-  {
-    //void LAPACK_dgbtrs(char* trans, lapack_int* n, lapack_int* kl, lapack_int* ku, lapack_int* nrhs, const double* ab, lapack_int* ldab, const lapack_int* ipiv, double* b, lapack_int* ldb, lapack_int *info );
-    int ldb_dgbtrs = la;
-    LAPACK_dgbtrs('N', &la, &kl, &ku, &NRHS, AB, &lab, ipiv, RHS, &ldb_dgbtrs, &info);
-    if (info!=0)
-    {
-      printf("\n INFO DGBTRS = %d\n",info);
-    }
-  }
-  else
-  {
-    printf("\n DGBTRS: INFO = %d\n",info);
-  }
+  
+  int ldb_dgbtrs = la;
+  info = LAPACKE_dgbtrs(LAPACK_COL_MAJOR, 'N', la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbtrs);
+  // solution is stored in RHS
   
 
   /* It can also be solved with dgbsv */
-  if (info == 0)
-  {
-    //void LAPACK_dgbsv( lapack_int* n, lapack_int* kl, lapack_int* ku, lapack_int* nrhs, double* ab, lapack_int* ldab, lapack_int* ipiv, double* b, lapack_int* ldb, lapack_int *info );
-    int ldb_dgbsv = la;
-    LAPACK_dgbsv(&la, &kl, &ku, &NRHS, AB, &lab, ipiv, RHS, &ldb_dgbsv, &info);
-    if (info != 0)
-    {
-      printf("\n INFO DGBSV = %d\n",info);
-      }
-  }
-  else
-  {
-    printf("\n DGBSV: INFO = %d\n",info);
-  }
+  // can jump the LU factorization step
+  /*
+  int ldb_dgbsv = la;
+  info = LAPACKE_dgbsv(LAPACK_COL_MAJOR, la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbsv);
+  // solution is stored in RHS
+  */
   write_xy(RHS, X, &la, "SOL.dat"); // col1 x, col2 rhs
 
   /* Relative forward error */
-  // TODO : Compute relative norm of the residual
+  // Compute relative norm of the residual
   
-  relres = temp / dnrm2_(&la, RHS, &NRHS);
+  relres = relative_forward_error(RHS, Y, &NRHS);
   printf("\nThe relative forward error is relres = %e\n",relres);
 
   free(RHS);

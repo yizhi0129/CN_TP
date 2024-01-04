@@ -148,6 +148,7 @@ void write_GB_operator_colMajor_poisson1D(double* AB, int* lab, int* la, char* f
   }
 }
 
+// output: row_index column_index value
 void write_GB2AIJ_operator_poisson1D(double* AB, int* la, char* filename)
 {
   FILE * file;
@@ -281,4 +282,17 @@ int dgbtrftridiag(int *la, int *n, int *kl, int *ku, double *AB, int *lab, int *
     }
 
     return *info;
+}
+
+double relative_forward_error(double* x, double* y, int* la)
+{
+  int i;
+  double temp1 = 0.0;
+  double temp2 = 0.0;
+  for (i = 0; i < *la; i ++)
+  {
+    temp1 += pow(x[i] - y[i], 2);
+    temp2 += pow(y[i], 2);
+  }
+  return sqrt(temp1 / temp2);
 }

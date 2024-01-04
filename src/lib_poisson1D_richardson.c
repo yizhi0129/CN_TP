@@ -5,38 +5,47 @@
 /**********************************************/
 #include "lib_poisson1D.h"
 
+
 void eig_poisson1D(double* eigval, int *la)
-{
+{ 
   for (int i = 0; i < *la; i ++)
-    eigval[i] = 2.0 * (1 +cos(i * M_PI / (*la + 1)));
+    eigval[i] = 2.0 * (1 + cos(i * M_PI / (*la + 1)));
 }
 
 double eigmax_poisson1D(int *la)
 {
   double max_eig = eigval[0];
 
-    for (int i = 1; i < *la; i ++) 
+  for (int i = 1; i < *la; i ++) 
+  {
+    if (eigval[i] >= max_eig) 
     {
-        if (eigval[i] >= max_eig) 
-        {
-            max_eig = eigval[i];
-        }
+      max_eig = eigval[i];
     }
-    return max_eig;
+    else 
+    {
+      continue;
+    }
+  }
+  return max_eig;
 }
 
 double eigmin_poisson1D(int *la)
 { 
   double min_eig = eigval[0];
 
-    for (int i = 1; i < *la; i ++) 
+  for (int i = 1; i < *la; i ++) 
+  {
+    if (eigval[i] <= min_eig) 
     {
-        if (eigval[i] <= min_eig) 
-        {
-            min_eig = eigval[i];
-        }
+      min_eig = eigval[i];
     }
-    return min_eig;
+    else 
+    {
+      continue;
+    }
+  }
+  return min_eig;
 }
 
 double richardson_alpha_opt(int *la)
@@ -84,12 +93,18 @@ void richardson_alpha(double *AB, double *RHS, double *X, double *alpha_rich, in
     free(temp2);
 }
 
-void extract_MB_jacobi_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv){
+void extract_MB_jacobi_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv)
+{
+
 }
 
-void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv){
+void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv)
+{
+
 }
 
-void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int *la,int *ku, int*kl, double *tol, int *maxit, double *resvec, int *nbite){
+void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int *la,int *ku, int*kl, double *tol, int *maxit, double *resvec, int *nbite)
+{
+
 }
 
