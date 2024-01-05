@@ -30,8 +30,8 @@ double eigmax_poisson1D(double* eigval, int *la);
 double eigmin_poisson1D(double* eigval, int *la);
 double richardson_alpha_opt(double* eigval, int *la);
 void richardson_alpha(double *AB, double *RHS, double *X, double *alpha_rich, int *lab, int *la,int *ku, int*kl, double *tol, int *maxit, double *resvec, int *nbite);
-void extract_MB_jacobi_tridiag(double *AB, double *MB, double *RHS, double *X, int *lab, int *la, int *ku, int *kl, int *kv, double *tol, int *maxit, double *resvec, int *nbite)
-void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv);
+void extract_MB_jacobi_tridiag(double *AB, double *MB, double *RHS, double *X, int *lab, int *la, int *ku, int *kl, int *kv, double *tol, int *maxit, double *resvec, int *nbite);
+void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, double *RHS, double *X, int *lab, int *la, int *ku, int *kl, int *kv, double *tol, int *maxit, double *resvec, int *nbite);
 void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int *la,int *ku, int*kl, double *tol, int *maxit, double *resvec, int *nbite);
 
 

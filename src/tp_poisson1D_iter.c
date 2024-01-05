@@ -3,7 +3,7 @@
 /* This file contains the main function   */
 /* to solve the Poisson 1D problem        */
 /******************************************/
-#include "lib_poisson1D.h"
+#include "../include/lib_poisson1D.h"
 
 #define ALPHA 0
 #define JAC 1
@@ -28,6 +28,7 @@ int main(int argc,char *argv[])
   
   double temp, relres;
 
+  double *eigval;
   double opt_alpha;
 
   if (argc == 2) {
@@ -77,7 +78,7 @@ int main(int argc,char *argv[])
   /* Solution (Richardson with optimal alpha) */
 
   /* Computation of optimum alpha */
-  opt_alpha = richardson_alpha_opt(&la);
+  opt_alpha = richardson_alpha_opt(eigval, &la);
   printf("Optimal alpha for simple Richardson iteration is : %lf",opt_alpha); 
 
   /* Solve */
@@ -101,9 +102,9 @@ int main(int argc,char *argv[])
   kl = 1;
   MB = (double *) malloc(sizeof(double)*(lab)*la);
   if (IMPLEM == JAC) {
-    extract_MB_jacobi_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
+    extract_MB_jacobi_tridiag(AB, MB, RHS, X, &lab, &la, &ku, &kl, &kv, &tol, &maxit, resvec, &nbite);
   } else if (IMPLEM == GS) {
-    extract_MB_gauss_seidel_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
+    extract_MB_gauss_seidel_tridiag(AB, MB, RHS, X, &lab, &la, &ku, &kl, &kv, &tol, &maxit, resvec, &nbite);
   }
 
   /* Solve with General Richardson */

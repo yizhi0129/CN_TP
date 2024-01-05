@@ -4,6 +4,7 @@
 /* to solve the Poisson 1D problem        */
 /******************************************/
 #include "../include/lib_poisson1D.h"
+#include <lapacke.h>
 
 #define TRF 0
 #define TRI 1
