@@ -4,6 +4,7 @@
 /* to solve the Poisson 1D problem        */
 /******************************************/
 #include "../include/lib_poisson1D.h"
+#include <time.h>
 
 #define ALPHA 0
 #define JAC 1
@@ -20,7 +21,9 @@ int main(int argc,char *argv[])
   int *ipiv;
   int info;
   int NRHS;
-  int IMPLEM = 0;
+
+  int IMPLEM;
+  
   double T0, T1;
   double *RHS, *SOL, *EX_SOL, *X;
   double *AB;
@@ -30,6 +33,9 @@ int main(int argc,char *argv[])
 
   double *eigval;
   double opt_alpha;
+
+  clock_t start_timer, end_timer;
+  double elapsed_time;
 
   if (argc == 2) {
     IMPLEM = atoi(argv[1]);
@@ -47,6 +53,8 @@ int main(int argc,char *argv[])
   T0=5.0;
   T1=20.0;
 
+  start_timer =clock();
+
   printf("--------- Poisson 1D ---------\n\n");
   RHS=(double *) malloc(sizeof(double)*la);
   SOL=(double *) calloc(la, sizeof(double)); 
@@ -59,11 +67,11 @@ int main(int argc,char *argv[])
   set_dense_RHS_DBC_1D(RHS,&la,&T0,&T1);
   set_analytical_solution_DBC_1D(EX_SOL, X, &la, &T0, &T1);
   
-  write_vec(RHS, &la, "RHS.dat");
-  write_vec(EX_SOL, &la, "EX_SOL.dat");
-  write_vec(X, &la, "X_grid.dat");
+  write_vec(RHS, &la, "./RHS.dat");
+  write_vec(EX_SOL, &la, "./EX_SOL.dat");
+  write_vec(X, &la, "./X_grid.dat");
 
-  kv=0;
+  kv=1; //**
   ku=1;
   kl=1;
   lab=kv+kl+ku+1;
@@ -72,21 +80,25 @@ int main(int argc,char *argv[])
   set_GB_operator_colMajor_poisson1D(AB, &lab, &la, &kv);
   
   /* uncomment the following to check matrix A */
-  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "AB.dat");
+  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "./AB.dat");
   
   /********************************************/
   /* Solution (Richardson with optimal alpha) */
 
   /* Computation of optimum alpha */
+  eigval = (double *) malloc(sizeof(double)*la);
+  eig_poisson1D(eigval, &la);
   opt_alpha = richardson_alpha_opt(eigval, &la);
-  printf("Optimal alpha for simple Richardson iteration is : %lf",opt_alpha); 
+  //opt_alpha = 0.5;
+  printf("Optimal alpha for simple Richardson iteration is : %lf\n",opt_alpha); 
 
   /* Solve */
   double tol=1e-3;
   int maxit=1000;
   double *resvec;
-  int nbite=0;
-
+  int nbite;
+  
+  
   resvec=(double *) calloc(maxit, sizeof(double));
 
   /* Solve with Richardson alpha */
@@ -97,9 +109,6 @@ int main(int argc,char *argv[])
   /* Richardson General Tridiag */
 
   /* get MB (:=M, D for Jacobi, (D-E) for Gauss-seidel) */
-  kv = 1;
-  ku = 1;
-  kl = 1;
   MB = (double *) malloc(sizeof(double)*(lab)*la);
   if (IMPLEM == JAC) {
     extract_MB_jacobi_tridiag(AB, MB, RHS, X, &lab, &la, &ku, &kl, &kv, &tol, &maxit, resvec, &nbite);
@@ -109,16 +118,19 @@ int main(int argc,char *argv[])
 
   /* Solve with General Richardson */
   if (IMPLEM == JAC || IMPLEM == GS) {
-    write_GB_operator_colMajor_poisson1D(MB, &lab, &la, "MB.dat");
+    write_GB_operator_colMajor_poisson1D(MB, &lab, &la, "./MB.dat");
     richardson_MB(AB, RHS, SOL, MB, &lab, &la, &ku, &kl, &tol, &maxit, resvec, &nbite);
   }
 
   /* Write solution */
-  write_vec(SOL, &la, "SOL.dat");
+  write_vec(SOL, &la, "./SOL.dat");
 
   /* Write convergence history */
-  write_vec(resvec, &nbite, "RESVEC.dat");
+  write_vec(resvec, &nbite, "./RESVEC.dat");
 
+
+  free(eigval);
+  
   free(resvec);
   free(RHS);
   free(SOL);
@@ -126,5 +138,11 @@ int main(int argc,char *argv[])
   free(X);
   free(AB);
   free(MB);
+
+  end_timer = clock();
+  elapsed_time = (double)(end_timer - start_timer) / (double)CLOCKS_PER_SEC;
+  printf("Elapsed time for iterative methods: %lf s\n", elapsed_time);
+
   printf("\n\n--------- End -----------\n");
+  return 0;
 }

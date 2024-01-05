@@ -4,7 +4,8 @@
 /* to solve the Poisson 1D problem        */
 /******************************************/
 #include "../include/lib_poisson1D.h"
-#include <lapacke.h>
+//#include <lapacke.h>
+#include <time.h>
 
 #define TRF 0
 #define TRI 1
@@ -31,6 +32,9 @@ int main(int argc, char *argv[])
 
   double temp, relres;
 
+  clock_t start_timer, end_timer;
+  double elapsed_time;
+
   NRHS=1;
   nbpoints=10;
   la=nbpoints-2;
@@ -47,6 +51,8 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  start_timer =clock();
+
   printf("--------- Poisson 1D ---------\n\n");
   RHS=(double *) malloc(sizeof(double)*la);
   EX_SOL=(double *) malloc(sizeof(double)*la);
@@ -59,11 +65,11 @@ int main(int argc, char *argv[])
  
   set_analytical_solution_DBC_1D(EX_SOL, X, &la, &T0, &T1);
   
-  write_vec(RHS, &la, "RHS.dat");
+  write_vec(RHS, &la, "./RHS.dat");
   //printf("RHS\n");
-  write_vec(EX_SOL, &la, "EX_SOL.dat");
+  write_vec(EX_SOL, &la, "./EX_SOL.dat");
   //printf("EX_SOL\n");
-  write_vec(X, &la, "X_grid.dat");
+  write_vec(X, &la, "./X_grid.dat");
   //printf("X\n");
 
   kv=1;
@@ -75,7 +81,7 @@ int main(int argc, char *argv[])
 
   set_GB_operator_colMajor_poisson1D(AB, &lab, &la, &kv);
 
-  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "AB.dat");
+  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "./AB.dat");
   //printf("AB\n");
   
   //void cblas_dgbmv(const enum CBLAS_ORDER order, const enum CBLAS_TRANSPOSE TransA, const int M, const int N, const int KL, const int KU, const double alpha, const double *A, const int lda, const double *X, const int incX, const double beta, double *Y, const int incY);
@@ -101,6 +107,7 @@ int main(int argc, char *argv[])
   if (IMPLEM == TRF)
   {
     info = LAPACKE_dgbtrf(LAPACK_COL_MAJOR, la, la, kl, ku, AB, lab, ipiv);
+    printf("TRF\n");
   }
   
 
@@ -108,9 +115,10 @@ int main(int argc, char *argv[])
   if (IMPLEM == TRI)
   {
     ierr = dgbtrftridiag(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
+    printf("TRI\n");
   }
 
-  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "LU.dat");
+  write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "./LU.dat");
   //printf("LU\n");
 
   /* Solution (Triangular) */
@@ -118,6 +126,7 @@ int main(int argc, char *argv[])
   {
     int ldb_dgbtrs = la;
     info = LAPACKE_dgbtrs(LAPACK_COL_MAJOR, 'N', la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbtrs);
+    printf("with LU factorization\n");
     // solution is stored in RHS
   }
   
@@ -130,12 +139,13 @@ int main(int argc, char *argv[])
   {
     int ldb_dgbsv = la;
     info = LAPACKE_dgbsv(LAPACK_COL_MAJOR, la, kl, ku, NRHS, AB, lab, ipiv, RHS, ldb_dgbsv);
+    printf("SV without LU facorization\n");
     // solution is stored in RHS
   }
   
   
 
-  write_xy(RHS, X, &la, "SOL.dat"); // col1 x, col2 rhs
+  write_xy(RHS, X, &la, "./SOL.dat"); // col1 x, col2 rhs
 
   /* Relative forward error */
   // Compute relative norm of the residual
@@ -147,5 +157,11 @@ int main(int argc, char *argv[])
   free(EX_SOL);
   free(X);
   free(AB);
+
+  end_timer = clock();
+  elapsed_time = (double)(end_timer - start_timer) / (double)CLOCKS_PER_SEC;
+  printf("Elapsed time for direct method: %lf seconds\n", elapsed_time);
+
   printf("\n\n--------- End -----------\n");
+  return 0;
 }
