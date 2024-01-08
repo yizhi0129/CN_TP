@@ -14,11 +14,8 @@ int main(int argc,char *argv[])
 /* ** argc: Number of arguments */
 /* ** argv: Values of arguments */
 {
-  int ierr;
-  int jj;
   int nbpoints, la;
   int ku, kl, lab, kv;
-  int *ipiv;
   int info;
   int NRHS;
 
@@ -29,7 +26,7 @@ int main(int argc,char *argv[])
   double *AB;
   double *MB;
   
-  double temp, relres;
+  double relres;
 
   double *eigval;
   double opt_alpha;
@@ -96,7 +93,7 @@ int main(int argc,char *argv[])
   double tol=1e-3;
   int maxit=1000;
   double *resvec;
-  int nbite;
+  int nbite=0;
   
   
   resvec=(double *) calloc(maxit, sizeof(double));
@@ -128,6 +125,9 @@ int main(int argc,char *argv[])
   /* Write convergence history */
   write_vec(resvec, &nbite, "./RESVEC.dat");
 
+  // calculate relative forward error
+  relres = relative_forward_error(SOL, EX_SOL, &la);
+  printf("\nThe relative forward error is relres = %e\n",relres);
 
   free(eigval);
   

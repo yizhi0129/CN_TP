@@ -27,8 +27,8 @@ void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv)
     // Upper and lower diagonals
     for (i = 0; i < *la - 1; i ++) 
     {
-        AB[(i + 1) * (*lab) + (*kv)] = -1.0;  // Lower diagonal
-        AB[i * (*lab) + (*kv) + 2] = -1.0;    // Upper diagonal
+        AB[(i + 1) * (*lab) + (*kv)] = -1.0;  // Upper diagonal
+        AB[i * (*lab) + (*kv) + 2] = -1.0;    // Lower diagonal
     }
 }
 
@@ -58,7 +58,7 @@ void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1)
 {
     int i;
     RHS[0] = *BC0;
-    for (i = 1; i < *la; i++) 
+    for (i = 1; i < *la; i ++) 
     {
         RHS[i] = 0.0;
     }
@@ -75,21 +75,11 @@ void set_analytical_solution_DBC_1D(double* EX_SOL, double* X, int* la, double* 
     {
         EX_SOL[i] = X[i] * (T1 - T0) + T0;
     }
-    EX_SOL[0] = T0;
-    EX_SOL[*la - 1] = T1;
 } 
 
 void set_grid_points_1D(double* x, int* la) 
 {
     int i;
-    
-    // Initialisation du vecteur à zéro
-    for (i = 0; i < *la; i ++) 
-    {
-        x[i] = 0.0;
-    }
-
-    // Remplissage du vecteur avec des valeurs équidistantes
     for (i = 0; i < *la; i ++) 
     {
         x[i] = (double) (i + 1) / (double) ((*la) + 1);
@@ -213,20 +203,21 @@ void write_xy(double* vec, double* x, int* la, char* filename)
   } 
 }  
 
+// i, j from 1 to la
 int indexABCol(int i, int j, int *lab)
 {
-  return j * (*lab) + i;
+  return j * (*lab - 1) + i - (*lab) + 2;
 }
 
 
 // Function to perform LU factorization of a tridiagonal matrix
 // Input:
-//   la: Number of diagonals in the matrix (should be 3 for tridiagonal)
+//   la: Leading dimension of the matrix (lab >= n)
 //   n: Order of the matrix
 //   kl: Number of subdiagonals (should be 1 for tridiagonal)
 //   ku: Number of superdiagonals (should be 1 for tridiagonal)
 //   AB: Input matrix (stored in column-major order)
-//   lab: Leading dimension of the matrix (lab >= n)
+//   lab: Number of diagonals in the matrix (should be 3 for tridiagonal)
 // Output:
 //   AB: LU factorization of the matrix (overwritten on the input matrix)
 //   ipiv: Array of pivot indices
@@ -235,42 +226,53 @@ int dgbtrftridiag(int *la, int *n, int *kl, int *ku, double *AB, int *lab, int *
 {
     int i, j, k;
     double temp;
-    // Check for invalid input
-    if (*la != 3 || *kl != 1 || *ku != 1 || *lab < *n) 
+   
+    if (*lab != 4 || *kl != 1 || *ku != 1 || *la < *n) 
     {
         *info = -1;
         return *info;
     }
-    // Initialize info
+    
     *info = 0;
-    // Perform LU factorization
+
     for (k = 0; k < *n - 1; k ++) 
     {
-        if (AB[k + (*ku) * (*lab) + k] == 0.0) 
+        int p_i = k;
+        double p_v = AB[indexABCol(k, k, lab)];
+        for (int i = k + 1; i < *n; i ++) 
         {
-            *info = k + 1;  // Matrix is singular
-            return *info;
-        }
-        // Compute multiplier
-        temp = -AB[k + (*ku) * (*lab) + k + 1] / AB[k + (*ku) * (*lab) + k];
-        
-        // Store multiplier in the subdiagonal
-        AB[k + 1 + (*kl) * (*lab) + k] = -temp;
-        
-        // Apply the multiplier to the remaining submatrix
-        for (i = k + 1; i < k + 3 && i < *n; i ++) 
-        {
-            for (j = k + 1; j < k + 3 && j < *n; j ++) 
+            if (fabs(AB[indexABCol(i, k, lab)]) > fabs(p_v)) 
             {
-                AB[i + (*ku) * (*lab) + j] += temp * AB[k + (*ku) * (*lab) + j];
+                p_i = i;
+                p_v = AB[indexABCol(i, k, lab)];
+            }
+        }
+        if (p_i != k) 
+        {
+            for (j = 0; j < *lab; j ++) 
+            {
+                temp = AB[indexABCol(p_i, j, lab)];
+                AB[indexABCol(p_i, j, lab)] = AB[indexABCol(k, j, lab)];
+                AB[indexABCol(k, j, lab)] = temp;
+            }
+            ipiv[k] = p_i;
+        }
+        else 
+        {
+            ipiv[k] = k + 1;
+        }
+
+        for (i = k + 1; i < *n; i ++) 
+        {
+            AB[indexABCol(i, k, lab)] /= AB[indexABCol(k, k, lab)];
+            for (j = k + 1; j < *n; j ++) 
+            {
+                AB[indexABCol(i, j, lab)] -= AB[indexABCol(i, k, lab)] * AB[indexABCol(k, j, lab)];
             }
         }
     }
-    // Check the last pivot element for singularity
-    if (AB[*n - 1 + (*ku) * (*lab) + *n - 1] == 0.0) 
-    {
-        *info = *n;
-    }
+    ipiv[*n - 1] = *n;
+
     return *info;
 }
 
@@ -353,18 +355,19 @@ void richardson_alpha(double *AB, double *RHS, double *X, double *alpha_rich, in
     // Initial residual: r_0 = b - Ax_0
     cblas_dcopy(*la, RHS, 1, temp, 1);  // temp = RHS
     cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1); //temp = temp - AB * X
-    norm_res = cblas_dnrm2(*la, temp, 1);
-    resvec[0] = 1;
+    norm_res = cblas_dnrm2(*la, temp, 1) / cblas_dnrm2(*la, RHS, 1);
+    resvec[0] = norm_res;
 
     // Iterate until convergence or max iterations reached
-    for (*nbite = 0; *nbite < *maxit && norm_res > *tol; ++ *nbite) 
+    for (*nbite = 1; *nbite < *maxit && norm_res > *tol; ++ *nbite) 
     {
         cblas_daxpy(*la, alpha, temp, 1, X, 1); //X = X + alpha * temp
         cblas_dcopy(*la, RHS, 1, temp, 1);  // temp = RHS
         cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1); //temp = temp - AB * X
 
         // Save the residual norm for each iteration
-        resvec[*nbite] = cblas_dnrm2(*la, temp, 1) / norm_res;
+        norm_res = cblas_dnrm2(*la, temp, 1) / cblas_dnrm2(*la, RHS, 1);
+        resvec[*nbite] = norm_res;
         
     }
 
@@ -374,28 +377,41 @@ void richardson_alpha(double *AB, double *RHS, double *X, double *alpha_rich, in
 
 
 
-// MB = D
+// MB = D^{-1}
 void extract_MB_jacobi_tridiag(double *AB, double *MB, int *lab, int *la, int *ku, int*kl, int *kv)
 {
   for (int i = 0; i < *la; i ++)
   {
-    MB[i * (*lab) + *ku + *kl] = AB[i * (*lab) + *ku + *kl];
+    MB[i * (*lab) + *kv + *ku] = 1.0 / AB[i * (*lab) + *kv + *ku];
   }
 }
 
 
 
-// MB = D - E
+// MB = (D - E)^{-1}
 void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la, int *ku, int*kl, int *kv)
 {
+  // MB = D - E
   for (int i = 0; i < *la; i ++)
   {
-    MB[i * (*lab) + *ku + *kl] = AB[i * (*lab) + *ku + *kl]; // Diagonal elements
-    if (i < *la - 1)
-    {
-      MB[i * (*lab) + *ku + *kl + 1] += AB[i * (*lab) + *ku + *kl + 1]; // Sub-diagonal elements
-    }
+    MB[i * (*lab) + *kv + *ku] = AB[i * (*lab) + *kv + *ku];                        // Diagonal elements
+    MB[i * (*lab) + *kv + *ku + 1] = AB[i * (*lab) + *kv + *ku + 1];              // Sub-diagonal elements    
   } 
+  // Inverse of MB
+  for (int j = 0; j < *la; j ++) 
+  {
+    MB[indexABCol(j, j, lab)] = 1.0 / MB[indexABCol(j, j, lab)];
+
+    for (int i = j + 1; i < *la; i ++) 
+    {
+      double sum = 0.0;
+      for (int k = i; k <= j; k ++) 
+      {
+        sum += MB[indexABCol(i, k, lab)] * MB[indexABCol(k, j, lab)];
+      }
+      MB[indexABCol(i, j, lab)] = -sum / MB[indexABCol(i, i, lab)];
+    }
+  }
 }
 
 
@@ -410,29 +426,26 @@ void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int
   exit(EXIT_FAILURE);
   }
 
-  int iter;
   double norm_res;
-
+  
   // Initial residual: r_0 = b - Ax_0
-  cblas_dcopy(*la, RHS, 1, temp, 1);
-  cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1);
-  norm_res = cblas_dnrm2(*la, temp, 1);
+  cblas_dcopy(*la, RHS, 1, temp, 1);  // temp = RHS
+  cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1); //temp = temp - AB * X
+  norm_res = cblas_dnrm2(*la, temp, 1) / cblas_dnrm2(*la, RHS, 1);
   resvec[0] = norm_res;
-  *nbite = 0;
 
   // Iterate until convergence or max iterations reached
-  for (iter = 1; iter < *maxit && norm_res > *tol; ++ iter)
+  for (*nbite = 1; *nbite < *maxit && norm_res > *tol; ++ *nbite) 
   {
-    for (int i = 0; i < *la; i++)
-    {
-      X[i] = (RHS[i] - temp[i]) / MB[i];
-    }
-    cblas_dcopy(*la, RHS, 1, temp, 1);
-    cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1);
+    cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, 1.0, MB, *lab, temp, 1, 1.0, X, 1); //X = X + MB * temp
 
-    norm_res = cblas_dnrm2(*la, temp, 1);
-    resvec[iter] = norm_res;
-    *nbite = iter;
+    cblas_dcopy(*la, RHS, 1, temp, 1);  // temp = RHS
+    cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1); //temp = temp - AB * X
+
+    // Save the residual norm for each iteration
+    norm_res = cblas_dnrm2(*la, temp, 1) / cblas_dnrm2(*la, RHS, 1);
+    resvec[*nbite] = norm_res;
   }
+  
   free(temp);
 }

@@ -1,0 +1,10 @@
+--------- Poisson 1D ---------
+
+Solution with LAPACK
+SV without LU facorization
+
+The relative forward error is relres = 2.393518e-16
+Elapsed time for direct method: 0.000909 seconds
+
+
+--------- End -----------

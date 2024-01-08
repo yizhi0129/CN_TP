@@ -14,7 +14,7 @@
 # Follow the example of the machine called "ambre" in the 
 # file ambre.mk
 #
-#HOSTNAME=MacOS
+
 HOSTNAME=Ubuntu
 include $(HOSTNAME).mk
 
@@ -24,7 +24,7 @@ OPTC=${OPTCLOCAL}
 
 #
 # -- Directories
-#TPDIR=./Users/yangyizhi/CN_TP
+
 TPDIR=~/CN_TP
 TPDIRSRC=$(TPDIR)/src
 

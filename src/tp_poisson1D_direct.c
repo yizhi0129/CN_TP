@@ -4,7 +4,6 @@
 /* to solve the Poisson 1D problem        */
 /******************************************/
 #include "../include/lib_poisson1D.h"
-//#include <lapacke.h>
 #include <time.h>
 
 #define TRF 0
@@ -16,7 +15,6 @@ int main(int argc, char *argv[])
 /* ** argv: Valeur des arguments */
 {
   int ierr;
-  int jj;
   int nbpoints, la;
   int ku, kl, kv, lab;
   int *ipiv;
@@ -26,8 +24,8 @@ int main(int argc, char *argv[])
   int IMPLEM;
 
   double T0, T1;
-  double *RHS, *EX_SOL, *X, *Y;
-  double **AAB;
+  double *RHS, *EX_SOL, *X;
+
   double *AB;
 
   double temp, relres;
@@ -51,8 +49,6 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  start_timer =clock();
-
   printf("--------- Poisson 1D ---------\n\n");
   RHS=(double *) malloc(sizeof(double)*la);
   EX_SOL=(double *) malloc(sizeof(double)*la);
@@ -60,17 +56,13 @@ int main(int argc, char *argv[])
 
   
   set_grid_points_1D(X, &la);
-
-  set_dense_RHS_DBC_1D(RHS, &la, &T0, &T1);
- 
+  set_dense_RHS_DBC_1D(RHS, &la, &T0, &T1); 
   set_analytical_solution_DBC_1D(EX_SOL, X, &la, &T0, &T1);
   
   write_vec(RHS, &la, "./RHS.dat");
-  //printf("RHS\n");
   write_vec(EX_SOL, &la, "./EX_SOL.dat");
-  //printf("EX_SOL\n");
   write_vec(X, &la, "./X_grid.dat");
-  //printf("X\n");
+
 
   kv=1;
   ku=1;
@@ -78,22 +70,13 @@ int main(int argc, char *argv[])
   lab=kv+kl+ku+1;
 
   AB = (double *) malloc(sizeof(double)*lab*la);
-
   set_GB_operator_colMajor_poisson1D(AB, &lab, &la, &kv);
-
   write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "./AB.dat");
-  //printf("AB\n");
-  
-  //void cblas_dgbmv(const enum CBLAS_ORDER order, const enum CBLAS_TRANSPOSE TransA, const int M, const int N, const int KL, const int KU, const double alpha, const double *A, const int lda, const double *X, const int incX, const double beta, double *Y, const int incY);
-  // result here: Y = A * EX_SOL, will be used as RHS for the solver
-  
-  //cblas_dgbmv(CblasColMajor, CblasNoTrans, la, la, kl, ku, 1.0, AB, lab, EX_SOL, NRHS, 1.0, Y, NRHS);
-  //write_vec(Y, &la, "Y.dat");
-  //printf("Y\n");
 
 
   printf("Solution with LAPACK\n");
 
+  start_timer = clock();
 
   /* LU Factorization */
   
@@ -103,23 +86,22 @@ int main(int argc, char *argv[])
     printf("\nFailed to allocate memory for ipiv\n");
     exit(1);
   }
-  //printf("ipiv\n");
+
   if (IMPLEM == TRF)
   {
     info = LAPACKE_dgbtrf(LAPACK_COL_MAJOR, la, la, kl, ku, AB, lab, ipiv);
     printf("TRF\n");
   }
   
-
-  /* LU for tridiagonal matrix  (can replace dgbtrf_) */
+  /* LU for tridiagonal matrix  (can replace LAPACKE_dgbtrf) */
   if (IMPLEM == TRI)
   {
     ierr = dgbtrftridiag(&la, &la, &kl, &ku, AB, &lab, ipiv, &info);
     printf("TRI\n");
+    printf("ierr = %d\n", ierr);
   }
-
   write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "./LU.dat");
-  //printf("LU\n");
+
 
   /* Solution (Triangular) */
   if (IMPLEM == TRF || IMPLEM == TRI)
@@ -130,8 +112,7 @@ int main(int argc, char *argv[])
     // solution is stored in RHS
   }
   
-  
-  
+   
 
   /* It can also be solved with dgbsv */
   // can jump the LU factorization step
@@ -143,20 +124,18 @@ int main(int argc, char *argv[])
     // solution is stored in RHS
   }
   
-  
 
-  write_xy(RHS, X, &la, "./SOL.dat"); // col1 x, col2 rhs
+  write_xy(RHS, X, &la, "./SOL.dat"); // col1 x_grid, col2 solution
 
-  /* Relative forward error */
-  // Compute relative norm of the residual
-  
-  relres = relative_forward_error(RHS, EX_SOL, &NRHS);
+  /* Relative forward error */ 
+  relres = relative_forward_error(RHS, EX_SOL, &la);
   printf("\nThe relative forward error is relres = %e\n",relres);
 
   free(RHS);
   free(EX_SOL);
   free(X);
   free(AB);
+  free(ipiv);
 
   end_timer = clock();
   elapsed_time = (double)(end_timer - start_timer) / (double)CLOCKS_PER_SEC;

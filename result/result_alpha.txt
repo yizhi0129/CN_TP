@@ -1,0 +1,9 @@
+--------- Poisson 1D ---------
+
+Optimal alpha for simple Richardson iteration is : 0.500000
+
+The relative forward error is relres = 5.093853e-03
+Elapsed time for iterative methods: 0.000867 s
+
+
+--------- End -----------

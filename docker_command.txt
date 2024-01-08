@@ -1,9 +1,0 @@
-(base) yangyizhideMacBook-Air:CN_TP yangyizhi$ docker build -t tp_env .
-(base) yangyizhideMacBook-Air:CN_TP yangyizhi$ docker run tp_env
-
-
-(base) yangyizhideMacBook-Air:CN_TP yangyizhi$ docker build -t tp_poisson1d_direct .
-(base) yangyizhideair:CN_TP yangyizhi$ docker run tp_poisson1d_direct
-
-
-docker run -e
