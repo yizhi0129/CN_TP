@@ -71,7 +71,7 @@ int main(int argc,char *argv[])
   write_vec(EX_SOL, &la, "./EX_SOL.dat");
   write_vec(X, &la, "./X_grid.dat");
 
-  kv=1; //**
+  kv=0; /**/
   ku=1;
   kl=1;
   lab=kv+kl+ku+1;
@@ -111,9 +111,9 @@ int main(int argc,char *argv[])
   /* get MB (:=M, D for Jacobi, (D-E) for Gauss-seidel) */
   MB = (double *) malloc(sizeof(double)*(lab)*la);
   if (IMPLEM == JAC) {
-    extract_MB_jacobi_tridiag(AB, MB, RHS, X, &lab, &la, &ku, &kl, &kv, &tol, &maxit, resvec, &nbite);
+    extract_MB_jacobi_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
   } else if (IMPLEM == GS) {
-    extract_MB_gauss_seidel_tridiag(AB, MB, RHS, X, &lab, &la, &ku, &kl, &kv, &tol, &maxit, resvec, &nbite);
+    extract_MB_gauss_seidel_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
   }
 
   /* Solve with General Richardson */

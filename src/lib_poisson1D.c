@@ -8,10 +8,8 @@
 void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv) 
 {
     int i, j;
-    int ku = *kv;  // Nombre de diagonales au-dessus de la diagonale principale
-    int kl = *kv;  // Nombre de diagonales en dessous de la diagonale principale
 
-    // Initialisation de la matrice à zéro
+    // Initialisation
     for (j = 0; j < *lab; j ++) 
     {
         for (i = 0; i < *la; i ++) 
@@ -20,17 +18,17 @@ void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv)
         }
     }
 
-    // Remplissage de la bande principale
+    // Main diagonal
     for (i = 0; i < *la; i ++) 
     {
-        AB[i * (*lab) + ku + kl] = 2.0;  // Éléments sur la diagonale principale
+        AB[i * (*lab) + (*kv) + 1] = 2.0; 
     }
 
-    // Remplissage des diagonales au-dessus et en dessous de la diagonale principale
+    // Upper and lower diagonals
     for (i = 0; i < *la - 1; i ++) 
     {
-        AB[(i + 1) * (*lab) + ku + kl - 1] = -1.0;  // Diagonale au-dessus
-        AB[i * (*lab) + ku + kl + 1] = -1.0;         // Diagonale en dessous
+        AB[(i + 1) * (*lab) + (*kv)] = -1.0;  // Lower diagonal
+        AB[i * (*lab) + (*kv) + 2] = -1.0;    // Upper diagonal
     }
 }
 
@@ -38,10 +36,8 @@ void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv)
 void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *kv) 
 {
     int i, j;
-    int ku = *kv;  // Nombre de diagonales au-dessus de la diagonale principale
-    int kl = *kv;  // Nombre de diagonales en dessous de la diagonale principale
 
-    // Initialisation de la matrice à zéro
+    // Initialisation
     for (j = 0; j < *lab; j ++) 
     {
         for (i = 0; i < *la; i ++) 
@@ -50,10 +46,10 @@ void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *k
         }
     }
 
-    // Remplissage de la diagonale principale
+    // Main diagonal
     for (i = 0; i < *la; i ++) 
     {
-        AB[i * (*lab) + ku + kl] = 1.0;  // Éléments sur la diagonale principale
+        AB[i * (*lab) + (*kv) + 1] = 1.0;  
     }
 }
 
@@ -61,11 +57,11 @@ void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *k
 void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1)
 {
     int i;
+    RHS[0] = *BC0;
     for (i = 1; i < *la; i++) 
     {
         RHS[i] = 0.0;
     }
-    RHS[0] = *BC0;
     RHS[*la - 1] = *BC1;
 }
 
@@ -301,7 +297,7 @@ void eig_poisson1D(double* eigval, int *la)
 { 
   for (int i = 0; i < *la; i ++)
   {
-    eigval[i] = 2.0 * (1 + cos(i * M_PI / (*la + 1)));
+    eigval[i] = 2.0 * (1 + cos((i + 1) * M_PI / (*la + 1)));
   }  
 }
 
@@ -335,7 +331,7 @@ double eigmin_poisson1D(double* eigval, int *la)
 
 double richardson_alpha_opt(double* eigval, int *la)
 { 
-  double alpha_opt = 1.0 / (eigmax_poisson1D(eigval, la) + eigmin_poisson1D(eigval, la));
+  double alpha_opt = 2.0 / (eigmax_poisson1D(eigval, la) + eigmin_poisson1D(eigval, la));
   return alpha_opt;
 }
 
@@ -352,34 +348,59 @@ void richardson_alpha(double *AB, double *RHS, double *X, double *alpha_rich, in
 
     // Initialize variables
     double alpha = *alpha_rich;
-    int iter;
     double norm_res;
   
     // Initial residual: r_0 = b - Ax_0
     cblas_dcopy(*la, RHS, 1, temp, 1);  // temp = RHS
     cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1); //temp = temp - AB * X
     norm_res = cblas_dnrm2(*la, temp, 1);
-    resvec[0] = norm_res;
-    *nbite = 0;
+    resvec[0] = 1;
 
     // Iterate until convergence or max iterations reached
-    for (iter = 1; iter < *maxit && norm_res > *tol; ++ iter) 
+    for (*nbite = 0; *nbite < *maxit && norm_res > *tol; ++ *nbite) 
     {
         cblas_daxpy(*la, alpha, temp, 1, X, 1); //X = X + alpha * temp
         cblas_dcopy(*la, RHS, 1, temp, 1);  // temp = RHS
         cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1); //temp = temp - AB * X
 
         // Save the residual norm for each iteration
-        norm_res = cblas_dnrm2(*la, temp, 1);
-        resvec[iter] = norm_res;
-        *nbite = iter;
+        resvec[*nbite] = cblas_dnrm2(*la, temp, 1) / norm_res;
+        
     }
 
     // Free allocated memory
     free(temp);
 }
 
-void extract_MB_jacobi_tridiag(double *AB, double *MB, double *RHS, double *X, int *lab, int *la, int *ku, int *kl, int *kv, double *tol, int *maxit, double *resvec, int *nbite)
+
+
+// MB = D
+void extract_MB_jacobi_tridiag(double *AB, double *MB, int *lab, int *la, int *ku, int*kl, int *kv)
+{
+  for (int i = 0; i < *la; i ++)
+  {
+    MB[i * (*lab) + *ku + *kl] = AB[i * (*lab) + *ku + *kl];
+  }
+}
+
+
+
+// MB = D - E
+void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la, int *ku, int*kl, int *kv)
+{
+  for (int i = 0; i < *la; i ++)
+  {
+    MB[i * (*lab) + *ku + *kl] = AB[i * (*lab) + *ku + *kl]; // Diagonal elements
+    if (i < *la - 1)
+    {
+      MB[i * (*lab) + *ku + *kl + 1] += AB[i * (*lab) + *ku + *kl + 1]; // Sub-diagonal elements
+    }
+  } 
+}
+
+
+
+void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int *la, int *ku, int *kl, double *tol, int *maxit, double *resvec, int *nbite)
 {
   double *temp = (double *)malloc(sizeof(double) * (*la));
   if (temp == NULL) 
@@ -387,12 +408,6 @@ void extract_MB_jacobi_tridiag(double *AB, double *MB, double *RHS, double *X, i
   // Handle memory allocation failure
   fprintf(stderr, "Memory allocation failed for temp\n");
   exit(EXIT_FAILURE);
-  }
-
-  // inverse of diagonal elements of AB
-  for (int i = 0; i < *la; i ++)
-  {
-    MB[i * (*lab) + *ku + *kl] = 1.0 / AB[i * (*lab) + *ku + *kl];
   }
 
   int iter;
@@ -406,43 +421,6 @@ void extract_MB_jacobi_tridiag(double *AB, double *MB, double *RHS, double *X, i
   *nbite = 0;
 
   // Iterate until convergence or max iterations reached
-  for (iter = 1; iter < *maxit && norm_res > *tol; ++ iter) 
-  {
-    cblas_dgemv(CblasColMajor, CblasNoTrans, *la, *la, 1.0, MB, *la, temp, 1, 1.0, X, 1); //X = X + MB * temp
-    cblas_dcopy(*la, RHS, 1, temp, 1);  // temp = RHS
-    cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1); //temp = temp - AB * X
-    
-    norm_res = cblas_dnrm2(*la, temp, 1);
-    resvec[iter] = norm_res;
-    *nbite = iter;
-  }
-  free(temp);
-}
-
-// without inversing (D - E)
-void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, double *RHS, double *X, int *lab, int *la, int *ku, int *kl, int *kv, double *tol, int *maxit, double *resvec, int *nbite)
-{
-  double *temp = (double *)malloc(sizeof(double) * (*la));
-
-  // MB = D - E
-  for (int i = 0; i < *la; i ++)
-  {
-    MB[i * (*lab) + *ku + *kl] = AB[i * (*lab) + *ku + *kl]; // Diagonal elements
-    if (i < *la - 1)
-    {
-      MB[i * (*lab) + *ku + *kl + 1] += AB[i * (*lab) + *ku + *kl + 1]; // Sub-diagonal elements
-    }
-  }
-  
-  int iter;
-  double norm_res;
-
-  cblas_dcopy(*la, RHS, 1, temp, 1);
-  cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp, 1);
-  norm_res = cblas_dnrm2(*la, temp, 1);
-  resvec[0] = norm_res;
-  *nbite = 0;
-
   for (iter = 1; iter < *maxit && norm_res > *tol; ++ iter)
   {
     for (int i = 0; i < *la; i++)
@@ -457,44 +435,4 @@ void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, double *RHS, double
     *nbite = iter;
   }
   free(temp);
-}
-
-
-void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int *la, int *ku, int *kl, double *tol, int *maxit, double *resvec, int *nbite)
-{
-    // Allocate memory for temporary vectors
-    double *temp1 = (double *)malloc(sizeof(double) * (*la));
-    double *temp2 = (double *)malloc(sizeof(double) * (*la));
-
-    // Initialize variables
-    int iter;
-    double norm_res;
-
-    // Initial residual: r_0 = b - Ax_0
-    cblas_dcopy(*la, RHS, 1, temp1, 1);
-    cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp1, 1);
-    norm_res = cblas_dnrm2(*la, temp1, 1);
-
-    // Iterate until convergence or max iterations reached
-    for (iter = 0; iter < *maxit && norm_res > *tol; ++iter)
-    {
-        // Richardson iteration: x_{k+1} = x_k + MB * (b - Ax_k)
-        cblas_dcopy(*la, RHS, 1, temp1, 1);
-        cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp1, 1);
-        cblas_dgemv(CblasColMajor, CblasNoTrans, *la, *la, 1.0, MB, *la, temp1, 1, 0.0, temp2, 1); // temp2 = temp2 + MB * temp1
-        cblas_daxpy(*la, 1.0, temp2, 1, X, 1);                                                // X = X + temp2
-
-        // Update residual: r_{k+1} = b - Ax_{k+1}
-        cblas_dcopy(*la, RHS, 1, temp1, 1);
-        cblas_dgbmv(CblasColMajor, CblasNoTrans, *la, *la, *kl, *ku, -1.0, AB, *lab, X, 1, 1.0, temp1, 1);
-        norm_res = cblas_dnrm2(*la, temp1, 1);
-
-        // Save the residual norm for each iteration
-        resvec[iter] = norm_res;
-        nbite[0] = iter + 1;
-    }
-
-    // Free allocated memory
-    free(temp1);
-    free(temp2);
 }
