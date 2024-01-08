@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/tpPoisson1D_iter",
-            "args": ["0"],
+            "args": ["2"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

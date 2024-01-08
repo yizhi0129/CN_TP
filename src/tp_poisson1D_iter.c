@@ -92,11 +92,11 @@ int main(int argc,char *argv[])
   /* Solve */
   double tol=1e-3;
   int maxit=1000;
-  double *resvec;
+  double *resvec = (double *) calloc(maxit, sizeof(double));
   int nbite=0;
   
   
-  resvec=(double *) calloc(maxit, sizeof(double));
+  // resvec=(double *) calloc(maxit, sizeof(double));
 
   /* Solve with Richardson alpha */
   if (IMPLEM == ALPHA) {

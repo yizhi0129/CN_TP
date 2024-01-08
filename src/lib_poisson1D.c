@@ -203,10 +203,10 @@ void write_xy(double* vec, double* x, int* la, char* filename)
   } 
 }  
 
-// i, j from 1 to la
+// i, j from 0 to *la -1
 int indexABCol(int i, int j, int *lab)
 {
-  return j * (*lab - 1) + i - (*lab) + 2;
+  return (j + 1) * (*lab - 1) + i - 1;
 }
 
 
@@ -405,11 +405,11 @@ void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la, 
     for (int i = j + 1; i < *la; i ++) 
     {
       double sum = 0.0;
-      for (int k = i; k <= j; k ++) 
+      for (int k = j; k < i; k ++) 
       {
-        sum += MB[indexABCol(i, k, lab)] * MB[indexABCol(k, j, lab)];
+        sum -= MB[indexABCol(i, k, lab)] * MB[indexABCol(k, j, lab)];
       }
-      MB[indexABCol(i, j, lab)] = -sum / MB[indexABCol(i, i, lab)];
+      MB[indexABCol(i, j, lab)] = sum / MB[indexABCol(i, i, lab)];
     }
   }
 }
